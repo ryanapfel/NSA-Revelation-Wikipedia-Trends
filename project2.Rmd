@@ -1,0 +1,225 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+
+
+```{r}
+install.packages("wikipediatrend")
+```
+```{r}
+devtools::install_github("petermeissner/wikipediatrend")
+```
+```{r}
+library(wikipediatrend)
+library(tidyverse)
+library(tidyr)
+library(zoo)
+```
+
+```{r}
+data = gsub(" ","_",c(
+        "Terrorism",
+        "Al Queda",
+        "Terror",
+        "Attack",
+        "Iraq",
+        "Afghanistan",
+        "Iran",
+        "Pakistan",
+        "Agro",
+        "Environmental Terrorism",
+        "Eco-terrorism",
+        "Conventional weapon",
+        "Weapons grade",
+        "Dirty bomb",
+        "Nuclear Enrichment",
+        "Nuclear",
+        "Chemical weapon",
+        "Biological weapon",
+        "Ammonium nitrate",
+        "Improvised_explosive_device",
+        "Abu Sayyaf",
+        "Hamas",
+        "FARC",
+        "Irish_Republican_Army",
+        "Euskadi ta Askatasuna",
+        "Hezbollah",
+        "Tamil Tigers",
+        "Palestine_Liberation_Organization",
+        "Palestine_Liberation_Front",
+        "Car bomb",
+        "Jihad",
+        "Taliban",
+        "Suicide bomber",
+        "Suicide attack",
+        "AL Qaeda in the Arabian Peninsula",
+        "Al Qaeda in the Islamic Maghreb",
+        "Tehrik-i-Taliban Pakistan",
+        "Yemen",
+        "Pirates",
+        "Extremism",
+        "Somalia",
+        "Nigeria",
+        "Political radicalism",
+        "Al-Shabaab",
+        "Nationalism",
+        "Recruitment",
+        "Fundamentalism",
+        "Islamist"))
+data
+
+
+
+```
+
+
+```{r}
+
+data = wp_trend(page =data,
+           from = "2012-01-01", 
+           to  = "2014-11-30", 
+           lang = c("en"))
+
+```
+
+```{r}
+
+ d1 = data %>%select(article,date,views) %>%
+  mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
+  group_by(month, year) %>%
+  summarise(monthlyTotal = sum(views)) %>% 
+  arrange(monthlyTotal, month, year) %>%
+  mutate(date = as.yearmon(paste(year, month), "%Y %m")) %>% 
+  select(date, monthlyTotal) 
+```
+
+```{r}
+
+d2 = mutate(d1, beforeRevelation = ifelse(date > as.yearmon("2013-06"), TRUE, FALSE))
+
+```
+```{r}
+  ggplot(d2, aes(date, monthlyTotal,group=beforeRevelation,colour=beforeRevelation)) +
+  geom_point() + 
+  geom_smooth(method="lm")
+
+```
+
+
+```{r}
+
+securityKeyWord = c(
+'United_States_Department_of_Homeland_Security',
+'Federal_Emergency_Management_Agency',
+'Coast_guard',
+'Customs_and_Border_Protection',
+'Border_Patrol',
+'Secret_Service',
+'Bureau_of_Land_Management',
+'Homeland_defense',
+'Espionage',
+'Task_Force_88_(anti-terrorist_unit)',
+'Central_Intelligence_Agency',
+'Fusion_center',
+'Secure_Border_Initiative',
+'Federal_Bureau_of_Investigation',
+'Alcohol_and_Tobacco_Tax_and_Trade_Bureau',
+'United_States_Citizenship_and_Immigration_Services',
+'Federal_Air_Marshal_Service',
+'Transportation_Security_Administration',
+'Air_marshal',
+'Federal_Aviation_Administration',
+'National_Guard',
+'Emergency_management',
+'U.S._Immigration_and_Customs_Enforcement',
+'United_Nations',
+'Infrastructure_security',
+'Airport',
+'Airplane',
+'Chemical_burn',
+'CIKR',
+'Amtrak',
+'Collapse',
+'Information_infrastructure',
+'Telecommunications_network',
+'Telecommunication',
+'Critical_Infrastructure',
+'National_Information_Infrastructure',
+'Metro_station',
+'Washington_Metropolitan_Area_Transit_Authority',
+'Subway',
+'Bay_Area_Rapid_Transit',
+'Metropolitan_Atlanta_Rapid_Transit_Authority',
+'Port_authority',
+'NBIC',
+'Electrical_grid',
+'Power',
+'Smart',
+'Full_body_scanner',
+'Electric_power',
+'Failure',
+'Power_outage',
+'Blackout',
+'Brownout',
+'Port',
+'Dock_(maritime)',
+'Bridge',
+'Flight_cancellation_and_delay',
+'Delay',
+'Electric_power_transmission'
+)
+
+
+```
+
+```{r}
+data2 = wp_trend(page =securityKeyWord,
+           from = "2012-01-01", 
+           to  = "2014-11-30", 
+           lang = c("en"))
+
+```
+
+
+```{r}
+
+ comparedf1 = data2 %>%select(article,date,views) %>%
+  mutate(month = format(date, "%m"), year = format(date, "%Y")) %>%
+  group_by(month, year) %>%
+  summarise(monthlyTotal = sum(views)) %>% 
+  arrange(monthlyTotal, month, year) %>%
+  mutate(date = as.yearmon(paste(year, month), "%Y %m")) %>% 
+  select(date, monthlyTotal) 
+```
+
+```{r}
+
+comparedf2 = mutate(comparedf1, beforeRevelation = ifelse(date > as.yearmon("2013-06"), TRUE, FALSE))
+
+```
+
+```{r}
+
+  
+  comparedf3 = mutate(comparedf2, type = "DHS & Other Agencies")
+  
+  d3= mutate(d2, type = "Terror")
+
+  combined = full_join(d3,comparedf3)
+
+```
+
+```{r}
+
+  ggplot(combined, aes(x=date, y=monthlyTotal, colour=type)) +
+  geom_point(aes(col = beforeRevelation)) + 
+  geom_point(aes(col = type)) + 
+  geom_smooth(aes(variable=beforeRevelation))
+
+
+```
+
+
+
